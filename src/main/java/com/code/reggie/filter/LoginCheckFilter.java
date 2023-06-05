@@ -1,6 +1,7 @@
 package com.code.reggie.filter;
 
 import com.alibaba.fastjson.JSON;
+import com.code.reggie.common.BaseContext;
 import com.code.reggie.common.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
@@ -41,6 +42,8 @@ public class LoginCheckFilter implements Filter {
             response.getWriter().write(JSON.toJSONString(R.error("NOTLOGIN")));
             return;
         }
+        Long empId = (Long) request.getSession().getAttribute("employee");
+        BaseContext.setCurrentId(empId);
         // 放行
         filterChain.doFilter(servletRequest, servletResponse);
     }

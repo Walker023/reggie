@@ -1,19 +1,17 @@
 package com.code.reggie.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.code.reggie.common.R;
 import com.code.reggie.entity.Employee;
 import com.code.reggie.service.EmployeeService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Slf4j
 @RestController
@@ -49,6 +47,7 @@ public class EmployeeController {
             return R.error("账号已被禁用");
         }
         request.getSession().setAttribute("employee", serviceOne.getId());
+
         return R.success(serviceOne);
     }
 
@@ -63,16 +62,36 @@ public class EmployeeController {
         return R.success(null);
     }
 
-    /**
-     * 用户列表
-     * @return R
-     * @param page 页码
-     * @param pageSize 每页显示条数
-     */
+
     @GetMapping("/page")
-    public R<List<Employee>> list(@Param("page") Integer page, @Param("pageSize") Integer pageSize) {
-        Page<Employee> iPage = new Page<>(page, pageSize);
-        List<Employee> list = employeeService.page(iPage).getRecords();
-        return R.success(list);
+    public R<Page<Employee>> list(int page, int pageSize,String name) {
+        log.info("page:{},pageSize:{},name: {}", page, pageSize,name);
+        Page<Employee> pageInfo = new Page<>(page, pageSize);
+        LambdaQueryWrapper<Employee> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(name != null,Employee::getName, name);
+        queryWrapper.orderByDesc(Employee::getCreateTime);
+        employeeService.page(pageInfo, queryWrapper);
+        return R.success(pageInfo);
+    }
+
+    @PostMapping
+    public R<String> save(HttpServletRequest request, @RequestBody Employee employee) {
+        // 设置初始密码
+        employee.setPassword(DigestUtils.md5DigestAsHex("123456".getBytes()));
+        employeeService.save(employee);
+        return R.success("新增员工成功");
+    }
+
+    @PutMapping
+    public R<String> update(HttpServletRequest request, @RequestBody Employee employee) {
+        employeeService.updateById(employee);
+        log.info("update当前线程: {}", Thread.currentThread().getId());
+        return R.success("修改员工成功");
+    }
+
+    @GetMapping("/{id}")
+    public R<Employee> getById(@PathVariable Long id) {
+        Employee employee = employeeService.getById(id);
+        return R.success(employee);
     }
 }
